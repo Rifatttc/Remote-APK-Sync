@@ -12,32 +12,33 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Fix Ubuntu Repos and Install Tools
+      - name: Fix Apt Connection and Install Tools
         run: |
-          # গিথহাবের মিরর এরর ফিক্স করার জন্য সার্ভার চেঞ্জ (সবথেকে ইমপরট্যান্ট)
-          sudo sed -i 's/archive.ubuntu.com/azure.archive.ubuntu.com/g' /etc/apt/sources.list
-          sudo apt-get update || true
+          # কানেকশন এরর (100) ফিক্স করার জন্য সার্ভার পরিবর্তন
+          sudo sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirror.oss.maxcdn.com/ubuntu/|g' /etc/apt/sources.list
+          sudo apt-get clean
+          # ৩ বার চেষ্টা করবে যাতে কানেকশন ফেইল না হয়
+          sudo apt-get update --fix-missing || true
           
-          # প্রয়োজনীয় ফাইলগুলো ক্লিন ভাবে ইনস্টল করা
-          sudo apt-get install -y --fix-missing \
+          sudo apt-get install -y --no-install-recommends \
             git zip unzip autoconf automake libtool pkg-config zlib1g-dev \
             libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev \
             libssl-dev openjdk-17-jdk
-            
-          # বিল্ডোজার ইনস্টল করা
-          pip install --user --upgrade "Cython<3.0" buildozer
+          
+          # বিল্ডোজার টুলস ইনস্টল
+          pip install --user --upgrade "Cython<3.0" buildozer setuptools
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Start Buildozer Build
+      - name: Build Android APK
         run: |
-          export PATH=$PATH:$HOME/.local/bin
+          # পাইথনের আধুনিক এরর ফিক্স
           export PIP_BREAK_SYSTEM_PACKAGES=1
-          # ফাস্ট টাইমে ইয়েস দিয়ে বিল্ড শুরু করা
           yes | buildozer android debug
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Final APK
+      - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
-          name: SecureSync_APK
+          name: SecureSync-Release
           path: bin/*.apk
