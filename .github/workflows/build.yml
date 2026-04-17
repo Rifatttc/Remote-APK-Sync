@@ -1,45 +1,40 @@
-name: Build Android APK
-on: [push, workflow_dispatch]
+name: Build APK
+
+on:
+  push:
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y \
+          python3-pip \
+          git zip unzip \
+          openjdk-17-jdk \
+          autoconf libtool pkg-config \
+          zlib1g-dev libncurses5-dev \
+          libncursesw5-dev libtinfo5 \
+          cmake libffi-dev libssl-dev
 
-      - name: Resilient Apt Install (Fix Error 100)
-        run: |
-          sudo rm -rf /var/lib/apt/lists/*
-          # এরর ইগনোর করে পরবর্তী ধাপে যাওয়ার জন্য ফিক্স
-          sudo apt-get update --allow-releaseinfo-change || true
-          sudo apt-get install -y --no-install-recommends \
-            git zip unzip autoconf automake libtool pkg-config zlib1g-dev \
-            libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev \
-            libssl-dev openjdk-17-jdk
-          
-          # বিল্ডোজারের একদম সেফ ও স্ট্যাবল ১.৫.০ ভার্সন ইনস্টল করা
-          pip install --user --upgrade Cython==0.29.33 buildozer==1.5.0 setuptools
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+    - name: Install Python packages
+      run: |
+        pip install --upgrade pip
+        pip install buildozer==1.5.0 cython
 
-      - name: Build Android APK (Anti-Ghost SDK Fix)
-        run: |
-          # ভুতুড়ে ৩৭.০.০ এরর ঠেকাতে কোড ফিক্স
-          sed -i 's/android.api = .*/android.api = 33/' buildozer.spec
-          sed -i 's/# android.build_tools_version = .*/android.build_tools_version = 33.0.0/' buildozer.spec
-          sed -i 's/android.minapi = .*/android.minapi = 21/' buildozer.spec
-          
-          export PIP_BREAK_SYSTEM_PACKAGES=1
-          yes | buildozer android debug
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Accept licenses + Build
+      run: |
+        yes | buildozer android debug
 
-      - name: Upload Final APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: SecureSync_Final_Build
-          path: bin/*.apk
+    - name: Upload APK
+      uses: actions/upload-artifact@v3
+      with:
+        name: apk
+        path: bin/*.apk
