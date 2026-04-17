@@ -4,9 +4,6 @@ on:
   push:
     branches: [ "main" ]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -20,16 +17,24 @@ jobs:
       with:
         python-version: "3.10"
 
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
         sudo apt update
-        sudo apt install -y git zip unzip openjdk-17 python3-pip
+        sudo apt install -y \
+          git zip unzip openjdk-17-jdk \
+          autoconf automake libtool pkg-config \
+          cmake libffi-dev libssl-dev \
+          python3-pip
+
+    - name: Install Buildozer
+      run: |
         pip install --upgrade pip
-        pip install buildozer cython
+        pip install cython==0.29.36
+        pip install buildozer==1.5.0
 
     - name: Build APK
       run: |
-        buildozer -v android debug
+        buildozer android debug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
