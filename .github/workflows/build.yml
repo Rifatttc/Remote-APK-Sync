@@ -12,33 +12,34 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Fix Apt Connection and Install Tools
+      - name: Resilient Apt Install (Fix Error 100)
         run: |
-          # কানেকশন এরর (100) ফিক্স করার জন্য সার্ভার পরিবর্তন
-          sudo sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirror.oss.maxcdn.com/ubuntu/|g' /etc/apt/sources.list
-          sudo apt-get clean
-          # ৩ বার চেষ্টা করবে যাতে কানেকশন ফেইল না হয়
-          sudo apt-get update --fix-missing || true
-          
+          sudo rm -rf /var/lib/apt/lists/*
+          # এরর ইগনোর করে পরবর্তী ধাপে যাওয়ার জন্য ফিক্স
+          sudo apt-get update --allow-releaseinfo-change || true
           sudo apt-get install -y --no-install-recommends \
             git zip unzip autoconf automake libtool pkg-config zlib1g-dev \
             libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev \
             libssl-dev openjdk-17-jdk
           
-          # বিল্ডোজার টুলস ইনস্টল
-          pip install --user --upgrade "Cython<3.0" buildozer setuptools
+          # বিল্ডোজারের একদম সেফ ও স্ট্যাবল ১.৫.০ ভার্সন ইনস্টল করা
+          pip install --user --upgrade Cython==0.29.33 buildozer==1.5.0 setuptools
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Build Android APK
+      - name: Build Android APK (Anti-Ghost SDK Fix)
         run: |
-          # পাইথনের আধুনিক এরর ফিক্স
+          # ভুতুড়ে ৩৭.০.০ এরর ঠেকাতে কোড ফিক্স
+          sed -i 's/android.api = .*/android.api = 33/' buildozer.spec
+          sed -i 's/# android.build_tools_version = .*/android.build_tools_version = 33.0.0/' buildozer.spec
+          sed -i 's/android.minapi = .*/android.minapi = 21/' buildozer.spec
+          
           export PIP_BREAK_SYSTEM_PACKAGES=1
           yes | buildozer android debug
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Finished APK
+      - name: Upload Final APK
         uses: actions/upload-artifact@v4
         with:
-          name: SecureSync-Release
+          name: SecureSync_Final_Build
           path: bin/*.apk
