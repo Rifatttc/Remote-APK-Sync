@@ -1,10 +1,6 @@
 name: Build Android APK
 on: [push, workflow_dispatch]
 
-# নোড.জেএস এর ওয়ার্নিং ফিক্স করার জন্য এনভায়রনমেন্ট ভেরিয়েবল
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,27 +10,34 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
 
-      - name: Fix Apt Error and Install Dependencies
+      - name: Force Install Dependencies
         run: |
-          # Exit code 100 ফিক্স করার জন্য ক্লিনআপ
-          sudo rm -rf /var/lib/apt/lists/*
-          sudo apt update || true
-          sudo apt install -y git zip unzip autoconf automake libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev libssl-dev openjdk-17-jdk
-          pip install --ignore-installed --user --upgrade Cython==0.29.33 buildozer setuptools
+          # Apt মিরর এরর ফিক্স
+          sudo apt-get clean
+          sudo apt-get update --fix-missing || true
+          
+          # প্রয়োজনীয় প্যাকেজগুলো সরাসরি ইনস্টল করা
+          sudo apt-get install -y --no-install-recommends \
+            git zip unzip autoconf automake libtool pkg-config zlib1g-dev \
+            libncurses5-dev libncursesw5-dev libtinfo5 cmake libffi-dev \
+            libssl-dev openjdk-17-jdk
+            
+          # পাইথন টুলস ইনস্টল
+          pip install --user --upgrade "Cython<3.0" buildozer setuptools
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Build with Buildozer
+      - name: Run Buildozer
         run: |
-          export PATH=$PATH:$HOME/.local/bin
-          # পাইথনের আধুনিক রেস্ট্রিকশন বাইপাস করা
+          # আধুনিক পাইথন রেস্ট্রিকশন অফ করা
           export PIP_BREAK_SYSTEM_PACKAGES=1
           yes | buildozer android debug
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Finished APK
+      - name: Save APK
         uses: actions/upload-artifact@v4
         with:
-          name: SecureSync-Release
+          name: SecureSync-App
           path: bin/*.apk
