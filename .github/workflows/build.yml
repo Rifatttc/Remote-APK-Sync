@@ -50,7 +50,7 @@ jobs:
     # =========================
     # 5. ANDROID SDK FULL FIX (AIDL + LICENSE + BUILD-TOOLS)
     # =========================
-    - name: Setup Android SDK (FIXED FULL)
+    - name: Setup Android SDK (FIXED SAFE)
       run: |
         mkdir -p $HOME/android-sdk
         cd $HOME/android-sdk
@@ -58,11 +58,19 @@ jobs:
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
         unzip -q commandlinetools-linux-*.zip
 
-        mkdir -p cmdline-tools/latest
-        mv cmdline-tools/* cmdline-tools/latest/
+        mkdir -p cmdline-tools
+        mv cmdline-tools cmdline-tools/latest
 
         export ANDROID_SDK_ROOT=$HOME/android-sdk
         export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
+
+        yes | sdkmanager --licenses || true
+
+        sdkmanager --install \
+          "platform-tools" \
+          "platforms;android-33" \
+          "build-tools;33.0.0" \
+          "ndk;25.1.8937393" || true
 
         # =========================
         # ACCEPT LICENSES (IMPORTANT)
