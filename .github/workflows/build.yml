@@ -1,4 +1,4 @@
-name: Build APK (SecureSync FIXED)
+name: Stable APK Build
 
 on:
   push:
@@ -10,47 +10,27 @@ jobs:
 
     steps:
 
-    # =========================
-    # 1. Checkout code
-    # =========================
-    - name: Checkout repo
+    - name: Checkout
       uses: actions/checkout@v4
 
-    # =========================
-    # 2. Python setup
-    # =========================
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
 
-    # =========================
-    # 3. System dependencies
-    # =========================
-    - name: Install system packages
+    - name: Install system deps
       run: |
         sudo apt update
-        sudo apt install -y \
-          git zip unzip wget \
-          openjdk-17-jdk \
-          build-essential \
-          autoconf automake libtool pkg-config \
-          cmake libffi-dev libssl-dev \
-          python3-pip
+        sudo apt install -y git zip unzip wget openjdk-17-jdk \
+        build-essential autoconf automake libtool pkg-config \
+        cmake libffi-dev libssl-dev python3-pip
 
-    # =========================
-    # 4. Install Buildozer
-    # =========================
     - name: Install Buildozer
       run: |
         pip install --upgrade pip
-        pip install cython==0.29.36
-        pip install buildozer==1.5.0
+        pip install cython==0.29.36 buildozer==1.5.0
 
-    # =========================
-    # 5. ANDROID SDK FULL FIX (AIDL + LICENSE + BUILD-TOOLS)
-    # =========================
-    - name: Setup Android SDK (FIXED SAFE)
+    - name: Setup Android SDK (STABLE FIX)
       run: |
         mkdir -p $HOME/android-sdk
         cd $HOME/android-sdk
@@ -72,32 +52,13 @@ jobs:
           "build-tools;33.0.0" \
           "ndk;25.1.8937393" || true
 
-        # =========================
-        # ACCEPT LICENSES (IMPORTANT)
-        # =========================
-        yes | sdkmanager --licenses || true
-
-        # =========================
-        # INSTALL SDK COMPONENTS
-        # =========================
-        sdkmanager --install \
-          "platform-tools" \
-          "platforms;android-33" \
-          "build-tools;33.0.0" \
-          "ndk;25.1.8937393" || true
-
-    # =========================
-    # 6. Build APK
-    # =========================
     - name: Build APK
       run: |
-        buildozer -v android debug
+        buildozer android debug
 
-    # =========================
-    # 7. Upload APK
-    # =========================
-    - name: Upload APK artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: SecureSync-APK
+        name: apk
         path: bin/*.apk
+        
