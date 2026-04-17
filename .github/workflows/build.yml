@@ -1,4 +1,4 @@
-name: Build APK
+name: Build APK (SecureSync FIXED)
 
 on:
   push:
@@ -9,27 +9,79 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # =========================
+    # 1. Checkout repo
+    # =========================
     - name: Checkout
       uses: actions/checkout@v4
 
+    # =========================
+    # 2. Python setup
+    # =========================
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
 
-    - name: Install dependencies
+    # =========================
+    # 3. System dependencies
+    # =========================
+    - name: Install system packages
       run: |
         sudo apt update
-        sudo apt install -y git zip unzip openjdk-17-jdk
-        pip install --upgrade pip
-        pip install buildozer cython
+        sudo apt install -y \
+          git zip unzip wget \
+          openjdk-17-jdk \
+          build-essential \
+          autoconf automake libtool pkg-config \
+          cmake libffi-dev libssl-dev \
+          python3-pip
 
-    - name: Build APK
+    # =========================
+    # 4. Install Buildozer
+    # =========================
+    - name: Install Buildozer
+      run: |
+        pip install --upgrade pip
+        pip install cython==0.29.36
+        pip install buildozer==1.5.0
+
+    # =========================
+    # 5. ANDROID SDK + AIDL FIX (MAIN FIX)
+    # =========================
+    - name: Setup Android SDK (FIX AIDL)
+      run: |
+        mkdir -p $HOME/android-sdk
+        cd $HOME/android-sdk
+
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+        unzip -q commandlinetools-linux-*.zip
+
+        mkdir -p cmdline-tools/latest
+        mv cmdline-tools/* cmdline-tools/latest/
+
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
+        export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
+
+        yes | sdkmanager --licenses
+
+        sdkmanager \
+          "platform-tools" \
+          "platforms;android-33" \
+          "build-tools;33.0.0"
+
+    # =========================
+    # 6. Build APK
+    # =========================
+    - name: Build APK with Buildozer
       run: |
         buildozer -v android debug
 
-    - name: Upload APK
+    # =========================
+    # 7. Upload APK
+    # =========================
+    - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: apk
+        name: SecureSync-APK
         path: bin/*.apk
