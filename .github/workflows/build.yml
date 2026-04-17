@@ -1,4 +1,4 @@
-name: Build APK (SecureSync)
+name: Build APK
 
 on:
   push:
@@ -12,18 +12,12 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v4
 
-    # =========================
-    # 1. Python Setup
-    # =========================
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: "3.10"
 
-    # =========================
-    # 2. System Dependencies
-    # =========================
-    - name: Install system packages
+    - name: Install system dependencies
       run: |
         sudo apt update
         sudo apt install -y \
@@ -34,19 +28,13 @@ jobs:
           cmake libffi-dev libssl-dev \
           python3-pip
 
-    # =========================
-    # 3. Install Buildozer
-    # =========================
     - name: Install Buildozer
       run: |
         pip install --upgrade pip
         pip install cython==0.29.36
         pip install buildozer==1.5.0
 
-    # =========================
-    # 4. Android SDK + AIDL FIX
-    # =========================
-    - name: Setup Android SDK (FIX AIDL)
+    - name: Setup Android SDK + FIX AIDL + NDK
       run: |
         mkdir -p $HOME/android-sdk
         cd $HOME/android-sdk
@@ -65,18 +53,13 @@ jobs:
         sdkmanager \
           "platform-tools" \
           "platforms;android-33" \
-          "build-tools;33.0.0"
+          "build-tools;33.0.0" \
+          "ndk;25.1.8937393"
 
-    # =========================
-    # 5. Build APK
-    # =========================
-    - name: Build APK with Buildozer
+    - name: Build APK
       run: |
         buildozer -v android debug
 
-    # =========================
-    # 6. Upload APK
-    # =========================
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
