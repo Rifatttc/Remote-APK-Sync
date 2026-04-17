@@ -9,10 +9,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
     # =========================
-    # 1. Checkout repo
+    # 1. Checkout code
     # =========================
-    - name: Checkout
+    - name: Checkout repo
       uses: actions/checkout@v4
 
     # =========================
@@ -47,9 +48,9 @@ jobs:
         pip install buildozer==1.5.0
 
     # =========================
-    # 5. ANDROID SDK + AIDL FIX (MAIN FIX)
+    # 5. ANDROID SDK FULL FIX (AIDL + LICENSE + BUILD-TOOLS)
     # =========================
-    - name: Setup Android SDK (FIX AIDL)
+    - name: Setup Android SDK (FIXED FULL)
       run: |
         mkdir -p $HOME/android-sdk
         cd $HOME/android-sdk
@@ -63,17 +64,24 @@ jobs:
         export ANDROID_SDK_ROOT=$HOME/android-sdk
         export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
 
-        yes | sdkmanager --licenses
+        # =========================
+        # ACCEPT LICENSES (IMPORTANT)
+        # =========================
+        yes | sdkmanager --licenses || true
 
-        sdkmanager \
+        # =========================
+        # INSTALL SDK COMPONENTS
+        # =========================
+        sdkmanager --install \
           "platform-tools" \
           "platforms;android-33" \
-          "build-tools;33.0.0"
+          "build-tools;33.0.0" \
+          "ndk;25.1.8937393" || true
 
     # =========================
     # 6. Build APK
     # =========================
-    - name: Build APK with Buildozer
+    - name: Build APK
       run: |
         buildozer -v android debug
 
